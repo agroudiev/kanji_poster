@@ -271,8 +271,8 @@ def color(text, c):
   return r'\textcolor[HTML]{%s}{%s}' % (c, text)
 
 
-def tikz_node(kind, x, y, text=''):
-  return "\\node[%s] at (%f, %f) {%s};" % (kind, x, y, text)
+def tikz_node(kind, x, y, bold, text=''):
+  return "\\node[%s] at (%f, %f) {%s%s%s};" % (kind, x, y, "\\textbf{" if bold else "", text, "}" if bold else "")
 
 
 def get_meaning(kanji, info):
@@ -282,15 +282,15 @@ def get_meaning(kanji, info):
     return info.meaning.split(',')[0]
 
 
-def render_kanji(kanji, info, x, y, colorizer, minimal):
+def render_kanji(kanji, info, x, y, colorizer, minimal, bold):
   """Renders a kanji and related information at the specified xy position."""
   nodes = []
 
-  def add_node(kind, dx, dy, text=''):
+  def add_node(kind, dx, dy, bold, text=''):
     """Adds a tikz node with the specified offset from the center."""
-    nodes.append(tikz_node(kind, x + dx, y + dy, text))
+    nodes.append(tikz_node(kind, x + dx, y + dy, bold, text))
 
-  add_node('Kanji', 0, 0.5, color(kanji, colorizer.choose_color(kanji, info)))
+  add_node('Kanji', 0, 0.5, bold, color(kanji, colorizer.choose_color(kanji, info)))
 
   if not minimal:
     add_node('Square', 0, 0)
@@ -308,7 +308,7 @@ def render_kanji(kanji, info, x, y, colorizer, minimal):
   return nodes
 
 
-def generate_poster_tex(kanji_info, colorizer, minimal=False):
+def generate_poster_tex(kanji_info, colorizer, minimal=False, bold=False):
   """Generates Tex to render all kanji in kanji_info in a big poster."""
   # The center of the poster is at (0, 0). Since we are using an A0 landscape
   # poster, the total width is 118.9 and the height 84.1, so the top left corner
@@ -332,7 +332,7 @@ def generate_poster_tex(kanji_info, colorizer, minimal=False):
     row = int(i / num_cols)
     col = i % num_cols
 
-    nodes.extend(render_kanji(kanji, info, x(col), y(row), colorizer, minimal))
+    nodes.extend(render_kanji(kanji, info, x(col), y(row), colorizer, minimal, bold))
 
     if (i + 1) % num_cols == 0 or (i + 1) == len(kanji_info):
       # If this is the last character in the row, record the cumulative
@@ -467,6 +467,8 @@ def main():
                       help='Maximum luminance for Kanji color')
   parser.add_argument('--minimal', default='minimal', action='store_true')
   parser.set_defaults(minimal=False)
+  parser.add_argument('--bold', default='bold', action='store_true')
+  parser.set_defaults(bold=False)
 
   args = parser.parse_args()
 
@@ -484,23 +486,27 @@ def main():
   colorizer = _COLORING_METHODS[args.color_by](kanji_info, args.colormap,
                                                args.max_luminance)
 
-  with open('tex/footer.tex', 'w') as f:
-    f.write('%d kanji covering %.2f\\%% of common Japanese text.' %
-            (len(kanji_info), 100 * sum(info.frequency
-                                        for info in kanji_info.values())))
-    f.write(r' Data from \url{https://www.wanikani.com} and '
-            r'\url{https://en.wikipedia.org/wiki/List_of_joyo_kanji}.')
-    f.write(' Kanji colors using colormap %s, most to least frequent: ' %
-            (args.colormap))
-    steps = 15
-    for i in range(steps + 1):
-      f.write(color('█', colorizer.color_fraction((steps - i) / steps)))
+  if not args.minimal:
+    with open('tex/footer.tex', 'w') as f:
+      f.write('%d kanji covering %.2f\\%% of common Japanese text.' %
+              (len(kanji_info), 100 * sum(info.frequency
+                                          for info in kanji_info.values())))
+      f.write(r' Data from \url{https://www.wanikani.com} and '
+              r'\url{https://en.wikipedia.org/wiki/List_of_joyo_kanji}.')
+      f.write(' Kanji colors using colormap %s, most to least frequent: ' %
+              (args.colormap))
+      steps = 15
+      for i in range(steps + 1):
+        f.write(color('█', colorizer.color_fraction((steps - i) / steps)))
+  else:
+    with open('tex/footer.tex', 'w') as f:
+      f.write('')
 
   sort_fn = make_sort_function(args.sort_by)
   kanji_info = sorted(kanji_info.items(), key=lambda kv: sort_fn(kv[1]))
 
   with open('tex/kanji_grid.tex', 'w') as f:
-    f.write(generate_poster_tex(kanji_info, colorizer, minimal=args.minimal))
+    f.write(generate_poster_tex(kanji_info, colorizer, minimal=args.minimal, bold=args.bold))
 
   with open('html/index.html', 'w') as f:
     f.write(generate_poster_html(kanji_info, colorizer))
