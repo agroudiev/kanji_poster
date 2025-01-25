@@ -282,19 +282,20 @@ def get_meaning(kanji, info):
     return info.meaning.split(',')[0]
 
 
-def render_kanji(kanji, info, x, y, colorizer, minimal, bold):
+def render_kanji(kanji, info, x, y, colorizer, minimal, bold, known_kanji=None):
   """Renders a kanji and related information at the specified xy position."""
   nodes = []
 
-  def add_node(kind, dx, dy, bold, text=''):
+  def add_node(kind, dx, dy, text='', bold=False):
     """Adds a tikz node with the specified offset from the center."""
     nodes.append(tikz_node(kind, x + dx, y + dy, bold, text))
 
-  add_node('Kanji', 0, 0.5, bold, color(kanji, colorizer.choose_color(kanji, info)))
+  if known_kanji is None and not minimal:
+    add_node('Square', 0, 0)
+  elif known_kanji is not None and kanji in known_kanji:
+    add_node('Square, fill=yellow', 0, 0)
 
   if not minimal:
-    add_node('Square', 0, 0)
-
     if info.onyomi:
       onyomi = format_readings(info.onyomi, jaconv.hira2kata)
       add_node('Onyomi', 0.05, 0.1, '\\hbox{\\tate %s}' % onyomi)
@@ -305,10 +306,12 @@ def render_kanji(kanji, info, x, y, colorizer, minimal, bold):
 
     add_node('Meaning', 0, 1.75, get_meaning(kanji, info))
 
+  add_node('Kanji', 0, 0.5, color(kanji, colorizer.choose_color(kanji, info)), bold)
+
   return nodes
 
 
-def generate_poster_tex(kanji_info, colorizer, minimal=False, bold=False):
+def generate_poster_tex(kanji_info, colorizer, minimal=False, bold=False, known_kanji=None):
   """Generates Tex to render all kanji in kanji_info in a big poster."""
   # The center of the poster is at (0, 0). Since we are using an A0 landscape
   # poster, the total width is 118.9 and the height 84.1, so the top left corner
@@ -332,7 +335,7 @@ def generate_poster_tex(kanji_info, colorizer, minimal=False, bold=False):
     row = int(i / num_cols)
     col = i % num_cols
 
-    nodes.extend(render_kanji(kanji, info, x(col), y(row), colorizer, minimal, bold))
+    nodes.extend(render_kanji(kanji, info, x(col), y(row), colorizer, minimal, bold, known_kanji))
 
     if (i + 1) % num_cols == 0 or (i + 1) == len(kanji_info):
       # If this is the last character in the row, record the cumulative
@@ -465,10 +468,12 @@ def main():
                       default=0.7,
                       type=float,
                       help='Maximum luminance for Kanji color')
-  parser.add_argument('--minimal', default='minimal', action='store_true')
+  parser.add_argument('--minimal', default='minimal', action='store_true', help='Do not show readings or meanings')
   parser.set_defaults(minimal=False)
-  parser.add_argument('--bold', default='bold', action='store_true')
+  parser.add_argument('--bold', default='bold', action='store_true', help='Display Kanji in bold')
   parser.set_defaults(bold=False)
+  parser.add_argument('--known', default='known', action='store_true', help='Highlight Kanji added to known_kanji.txt')
+  parser.set_defaults(known=False)
 
   args = parser.parse_args()
 
@@ -502,11 +507,18 @@ def main():
     with open('tex/footer.tex', 'w') as f:
       f.write('')
 
+  known_kanji = None
+  if args.known:
+    known_kanji = set()
+    with open('data/known_kanji.txt') as f:
+      for line in f:
+        known_kanji.add(line.strip())
+
   sort_fn = make_sort_function(args.sort_by)
   kanji_info = sorted(kanji_info.items(), key=lambda kv: sort_fn(kv[1]))
 
   with open('tex/kanji_grid.tex', 'w') as f:
-    f.write(generate_poster_tex(kanji_info, colorizer, minimal=args.minimal, bold=args.bold))
+    f.write(generate_poster_tex(kanji_info, colorizer, minimal=args.minimal, bold=args.bold, known_kanji=known_kanji))
 
   with open('html/index.html', 'w') as f:
     f.write(generate_poster_html(kanji_info, colorizer))
