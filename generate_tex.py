@@ -290,10 +290,10 @@ def render_kanji(kanji, info, x, y, colorizer, minimal, bold, known_kanji=None):
     """Adds a tikz node with the specified offset from the center."""
     nodes.append(tikz_node(kind, x + dx, y + dy, bold, text))
 
-  if known_kanji is None and not minimal:
-    add_node('Square', 0, 0)
-  elif known_kanji is not None and kanji in known_kanji:
+  if known_kanji is not None and kanji in known_kanji:
     add_node('Square, fill=yellow', 0, 0)
+  elif not minimal:
+    add_node('Square', 0, 0)
 
   if not minimal:
     if info.onyomi:
