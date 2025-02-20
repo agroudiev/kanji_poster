@@ -311,7 +311,7 @@ def render_kanji(kanji, info, x, y, colorizer, minimal, bold, known_kanji=None):
   return nodes
 
 
-def generate_poster_tex(kanji_info, colorizer, minimal=False, bold=False, known_kanji=None):
+def generate_poster_tex(kanji_info, colorizer, minimal=False, bold=False, known_kanji=None, jlpt_lines=False):
   """Generates Tex to render all kanji in kanji_info in a big poster."""
   # The center of the poster is at (0, 0). Since we are using an A0 landscape
   # poster, the total width is 118.9 and the height 84.1, so the top left corner
@@ -329,11 +329,17 @@ def generate_poster_tex(kanji_info, colorizer, minimal=False, bold=False, known_
 
   nodes = []
   cum_freq = 0
+  if jlpt_lines:
+    current_jlpt_level = -1
   for i, (kanji, info) in enumerate(kanji_info):
     cum_freq += info.frequency
 
     row = int(i / num_cols)
     col = i % num_cols
+
+    if jlpt_lines and info.jlpt_level != current_jlpt_level:
+      current_jlpt_level = info.jlpt_level
+      nodes.append(r"\draw[line width=1mm] (-57.5, " + str(y(row)) + "+1) -- (57.8, " + str(y(row)) + r"+1) node[left, pos=0]  {\textbf{\Huge N" + str(0 if current_jlpt_level is None else current_jlpt_level) + "}};")
 
     nodes.extend(render_kanji(kanji, info, x(col), y(row), colorizer, minimal, bold, known_kanji))
 
@@ -474,6 +480,8 @@ def main():
   parser.set_defaults(bold=False)
   parser.add_argument('--known', default='known', action='store_true', help='Highlight Kanji added to known_kanji.txt')
   parser.set_defaults(known=False)
+  parser.add_argument('--jlpt_lines', default='jlpt_lines', action='store_true', help='Add lines to separate JLPT levels')
+  parser.set_defaults(jlpt_lines=False)
 
   args = parser.parse_args()
 
@@ -518,7 +526,7 @@ def main():
   kanji_info = sorted(kanji_info.items(), key=lambda kv: sort_fn(kv[1]))
 
   with open('tex/kanji_grid.tex', 'w') as f:
-    f.write(generate_poster_tex(kanji_info, colorizer, minimal=args.minimal, bold=args.bold, known_kanji=known_kanji))
+    f.write(generate_poster_tex(kanji_info, colorizer, minimal=args.minimal, bold=args.bold, known_kanji=known_kanji, jlpt_lines=args.jlpt_lines))
 
   with open('html/index.html', 'w') as f:
     f.write(generate_poster_html(kanji_info, colorizer))
