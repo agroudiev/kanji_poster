@@ -328,6 +328,7 @@ def generate_poster_tex(kanji_info, colorizer, minimal=False, bold=False, known_
     return 40 - cell_size * row
 
   nodes = []
+  line_nodes = []
   cum_freq = 0
   if jlpt_lines:
     current_jlpt_level = -1
@@ -339,7 +340,7 @@ def generate_poster_tex(kanji_info, colorizer, minimal=False, bold=False, known_
 
     if jlpt_lines and info.jlpt_level != current_jlpt_level:
       current_jlpt_level = info.jlpt_level
-      nodes.append(r"\draw[line width=1mm] (-57.5, " + str(y(row)) + "+1) -- (57.8, " + str(y(row)) + r"+1) node[left, pos=0]  {\textbf{\Huge N" + str(0 if current_jlpt_level is None else current_jlpt_level) + "}};")
+      line_nodes.append(r"\draw[line width=1mm] (-57.5, " + str(y(row)) + "+1) -- (57.8, " + str(y(row)) + r"+1) node[left, pos=0]  {\textbf{\Huge N" + str(0 if current_jlpt_level is None else current_jlpt_level) + "}};")
 
     nodes.extend(render_kanji(kanji, info, x(col), y(row), colorizer, minimal, bold, known_kanji))
 
@@ -357,7 +358,7 @@ def generate_poster_tex(kanji_info, colorizer, minimal=False, bold=False, known_
                   y(row) + 1.2,
                   '%d - %d' % (row * num_cols + 1, (row + 1) * num_cols)))
 
-  return '\n'.join(nodes)
+  return '\n'.join(nodes + line_nodes)
 
 
 def generate_poster_html(kanji_info, colorizer):
