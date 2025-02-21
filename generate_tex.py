@@ -340,7 +340,15 @@ def generate_poster_tex(kanji_info, colorizer, minimal=False, bold=False, known_
 
     if jlpt_lines and info.jlpt_level != current_jlpt_level:
       current_jlpt_level = info.jlpt_level
-      line_nodes.append(r"\draw[line width=1mm] (-57.5, " + str(y(row)) + "+1) -- (57.8, " + str(y(row)) + r"+1) node[left, pos=0]  {\textbf{\Huge N" + str(0 if current_jlpt_level is None else current_jlpt_level) + "}};")
+
+      if col == 0:
+        line_nodes.append(r"\draw[line width=1mm] (-57.5, " + str(y(row)+cell_size/2) + ") -- (57.8, " + str(y(row)) + r"+1) node[left, pos=0]  {\textbf{\Huge N" + str(0 if current_jlpt_level is None else current_jlpt_level) + "}};")
+      else:
+        x_sep = str(x(col - 0.5))
+        line_nodes.append(r"\draw[line width=1mm, line join=round] (-57.5, " + str(y(row+1) + cell_size/2) + ") -- (" + x_sep + ", " + str(y(row+1) + cell_size/2) + r") -- (" + x_sep + ", " + str(y(row) + cell_size/2) + r") -- (57.8, " + str(y(row) + cell_size/2) + r");")
+        line_nodes.append(r"\node[left] at (-57.5, " + str(y(row+1) + cell_size/2) + r") {\textbf{\Huge N" + str(0 if current_jlpt_level is None else current_jlpt_level) + "}};")
+        # line_nodes.append(r"\draw[line width=1mm, line join=round] (" + x_sep + ", " + str(y(row)+cell_size/2) + ") -- (57.8, " + str(y(row)) + r"+1);")
+        # line_nodes.append(r"\draw[line width=1mm, line join=round] (" + x_sep + ", " + str(y(row+1)+cell_size/2) + ") -- (" + x_sep + ", " + str(y(row)) + r"+1);")
 
     nodes.extend(render_kanji(kanji, info, x(col), y(row), colorizer, minimal, bold, known_kanji))
 
