@@ -332,6 +332,9 @@ def generate_poster_tex(kanji_info, colorizer, minimal=False, bold=False, known_
   cum_freq = 0
   if jlpt_lines:
     current_jlpt_level = -1
+  if jlpt_lines and known_kanji is not None:
+    known_kanji_stats = [0] * 6
+    jlpt_total = [0] * 6
   for i, (kanji, info) in enumerate(kanji_info):
     cum_freq += info.frequency
 
@@ -347,8 +350,11 @@ def generate_poster_tex(kanji_info, colorizer, minimal=False, bold=False, known_
         x_sep = str(x(col - 0.5))
         line_nodes.append(r"\draw[line width=1mm, line join=round] (-57.5, " + str(y(row+1) + cell_size/2) + ") -- (" + x_sep + ", " + str(y(row+1) + cell_size/2) + r") -- (" + x_sep + ", " + str(y(row) + cell_size/2) + r") -- (57.8, " + str(y(row) + cell_size/2) + r");")
         line_nodes.append(r"\node[left] at (-57.5, " + str(y(row+1) + cell_size/2) + r") {\textbf{\Huge N" + str(0 if current_jlpt_level is None else current_jlpt_level) + "}};")
-        # line_nodes.append(r"\draw[line width=1mm, line join=round] (" + x_sep + ", " + str(y(row)+cell_size/2) + ") -- (57.8, " + str(y(row)) + r"+1);")
-        # line_nodes.append(r"\draw[line width=1mm, line join=round] (" + x_sep + ", " + str(y(row+1)+cell_size/2) + ") -- (" + x_sep + ", " + str(y(row)) + r"+1);")
+
+    if jlpt_lines and known_kanji is not None:
+      if kanji in known_kanji:
+        known_kanji_stats[0 if current_jlpt_level is None else current_jlpt_level] += 1
+      jlpt_total[0 if current_jlpt_level is None else current_jlpt_level] += 1
 
     nodes.extend(render_kanji(kanji, info, x(col), y(row), colorizer, minimal, bold, known_kanji))
 
@@ -365,6 +371,12 @@ def generate_poster_tex(kanji_info, colorizer, minimal=False, bold=False, known_
         tikz_node('Meaning', x(-1),
                   y(row) + 1.2,
                   '%d - %d' % (row * num_cols + 1, (row + 1) * num_cols)))
+    
+  # print the number of kanji in each JLPT level.
+  if jlpt_lines and known_kanji is not None:
+    for i in reversed(list(range(6))):
+      print(f"  JLPT {i}: {known_kanji_stats[i]:4} / {jlpt_total[i]:4} ({int(100 * known_kanji_stats[i] / jlpt_total[i])}%)")
+    print(f"  Total:  {sum(known_kanji_stats):4} / {sum(jlpt_total):4} ({int(100 * sum(known_kanji_stats) / sum(jlpt_total))}%)")
 
   return '\n'.join(nodes + line_nodes)
 
