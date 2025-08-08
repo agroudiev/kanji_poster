@@ -295,9 +295,9 @@ def render_kanji(kanji, info, x, y, colorizer, minimal, bold, kanji_lists=None):
   if known_kanji is not None and kanji in known_kanji:
     add_node('Square, fill=yellow', 0, 0)
   elif typed_kanji is not None and kanji in typed_kanji:
-    add_node('Square, fill=DarkOrchid', 0, 0)
+    add_node('Square, fill=Salmon', 0, 0)
   elif wishlist_kanji is not None and kanji in wishlist_kanji:
-    add_node('Square, fill=cyan', 0, 0)
+    add_node('Square, fill=Apricot', 0, 0)
   elif not minimal:
     add_node('Square', 0, 0)
 
@@ -551,18 +551,27 @@ def main():
     known_kanji = set()
     with open('data/known_kanji.txt') as f:
       for line in f:
-        known_kanji.add(line.strip())
+        kanji = line.strip()
+        if kanji in known_kanji:
+          print("Warning: duplicate known kanji found:", kanji)
+        known_kanji.add(kanji)
 
   if args.learning:
     typed_kanji = set()
     with open('data/typed_kanji.txt') as f:
       for line in f:
-        typed_kanji.add(line.strip())
+        kanji = line.strip()
+        if kanji in typed_kanji:
+          print("Warning: duplicate typed kanji found:", kanji)
+        typed_kanji.add(kanji)
 
     wishlist_kanji = set()
     with open('data/wishlist_kanji.txt') as f:
       for line in f:
-        wishlist_kanji.add(line.strip())
+        kanji = line.strip()
+        if kanji in wishlist_kanji:
+          print("Warning: duplicate wishlist kanji found:", kanji)
+        wishlist_kanji.add(kanji)
 
   sort_fn = make_sort_function(args.sort_by)
   kanji_info = sorted(kanji_info.items(), key=lambda kv: sort_fn(kv[1]))
