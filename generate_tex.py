@@ -509,6 +509,8 @@ def main():
   parser.set_defaults(bold=False)
   parser.add_argument('--known', default='known', action='store_true', help='Highlight Kanji added to known_kanji.txt')
   parser.set_defaults(known=False)
+  parser.add_argument('--learning', default='learning', action='store_true', help='Highlight Kanji added to typed_kanji.txt and wishlist_kanji.txt')
+  parser.set_defaults(learning=False)
   parser.add_argument('--jlpt_lines', default='jlpt_lines', action='store_true', help='Add lines to separate JLPT levels')
   parser.set_defaults(jlpt_lines=False)
 
@@ -544,13 +546,14 @@ def main():
     with open('tex/footer.tex', 'w') as f:
       f.write('')
 
-  known_kanji = None
+  known_kanji, typed_kanji, wishlist_kanji = None, None, None
   if args.known:
     known_kanji = set()
     with open('data/known_kanji.txt') as f:
       for line in f:
         known_kanji.add(line.strip())
 
+  if args.learning:
     typed_kanji = set()
     with open('data/typed_kanji.txt') as f:
       for line in f:
