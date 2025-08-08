@@ -282,9 +282,11 @@ def get_meaning(kanji, info):
     return info.meaning.split(',')[0]
 
 
-def render_kanji(kanji, info, x, y, colorizer, minimal, bold, known_kanji=None):
+def render_kanji(kanji, info, x, y, colorizer, minimal, bold, kanji_lists=None):
   """Renders a kanji and related information at the specified xy position."""
   nodes = []
+
+  known_kanji, typed_kanji, wishlist_kanji = kanji_lists
 
   def add_node(kind, dx, dy, text='', bold=False):
     """Adds a tikz node with the specified offset from the center."""
@@ -292,6 +294,10 @@ def render_kanji(kanji, info, x, y, colorizer, minimal, bold, known_kanji=None):
 
   if known_kanji is not None and kanji in known_kanji:
     add_node('Square, fill=yellow', 0, 0)
+  elif typed_kanji is not None and kanji in typed_kanji:
+    add_node('Square, fill=DarkOrchid', 0, 0)
+  elif wishlist_kanji is not None and kanji in wishlist_kanji:
+    add_node('Square, fill=cyan', 0, 0)
   elif not minimal:
     add_node('Square', 0, 0)
 
@@ -311,7 +317,7 @@ def render_kanji(kanji, info, x, y, colorizer, minimal, bold, known_kanji=None):
   return nodes
 
 
-def generate_poster_tex(kanji_info, colorizer, minimal=False, bold=False, known_kanji=None, jlpt_lines=False):
+def generate_poster_tex(kanji_info, colorizer, minimal=False, bold=False, kanji_lists=(None, None, None), jlpt_lines=False):
   """Generates Tex to render all kanji in kanji_info in a big poster."""
   # The center of the poster is at (0, 0). Since we are using an A0 landscape
   # poster, the total width is 118.9 and the height 84.1, so the top left corner
@@ -320,6 +326,8 @@ def generate_poster_tex(kanji_info, colorizer, minimal=False, bold=False, known_
   # the number of Kanji we want to show.
   cell_size = 2.05  # Must match \Size in main.tex.
   num_cols = 56
+
+  known_kanji, typed_kanji, wishlist_kanji = kanji_lists
 
   def x(col):
     return cell_size * col - 56
@@ -356,7 +364,7 @@ def generate_poster_tex(kanji_info, colorizer, minimal=False, bold=False, known_
         known_kanji_stats[0 if current_jlpt_level is None else current_jlpt_level] += 1
       jlpt_total[0 if current_jlpt_level is None else current_jlpt_level] += 1
 
-    nodes.extend(render_kanji(kanji, info, x(col), y(row), colorizer, minimal, bold, known_kanji))
+    nodes.extend(render_kanji(kanji, info, x(col), y(row), colorizer, minimal, bold, kanji_lists))
 
     if (i + 1) % num_cols == 0 or (i + 1) == len(kanji_info):
       # If this is the last character in the row, record the cumulative
@@ -375,7 +383,7 @@ def generate_poster_tex(kanji_info, colorizer, minimal=False, bold=False, known_
   # print the number of kanji in each JLPT level.
   if jlpt_lines and known_kanji is not None:
     for i in reversed(list(range(6))):
-      print(f"  JLPT {i}: {known_kanji_stats[i]:4} / {jlpt_total[i]:4} ({int(100 * known_kanji_stats[i] / jlpt_total[i])}%)")
+      print(f"  JLPT {i}: {known_kanji_stats[i]:4} / {jlpt_total[i]:4} ({int(100 * known_kanji_stats[i] / jlpt_total[i]):3}%)")
     print(f"  Total:  {sum(known_kanji_stats):4} / {sum(jlpt_total):4} ({int(100 * sum(known_kanji_stats) / sum(jlpt_total))}%)")
 
   return '\n'.join(nodes + line_nodes)
@@ -543,11 +551,21 @@ def main():
       for line in f:
         known_kanji.add(line.strip())
 
+    typed_kanji = set()
+    with open('data/typed_kanji.txt') as f:
+      for line in f:
+        typed_kanji.add(line.strip())
+
+    wishlist_kanji = set()
+    with open('data/wishlist_kanji.txt') as f:
+      for line in f:
+        wishlist_kanji.add(line.strip())
+
   sort_fn = make_sort_function(args.sort_by)
   kanji_info = sorted(kanji_info.items(), key=lambda kv: sort_fn(kv[1]))
 
   with open('tex/kanji_grid.tex', 'w') as f:
-    f.write(generate_poster_tex(kanji_info, colorizer, minimal=args.minimal, bold=args.bold, known_kanji=known_kanji, jlpt_lines=args.jlpt_lines))
+    f.write(generate_poster_tex(kanji_info, colorizer, minimal=args.minimal, bold=args.bold, kanji_lists=(known_kanji, typed_kanji, wishlist_kanji), jlpt_lines=args.jlpt_lines))
 
   with open('html/index.html', 'w') as f:
     f.write(generate_poster_html(kanji_info, colorizer))
